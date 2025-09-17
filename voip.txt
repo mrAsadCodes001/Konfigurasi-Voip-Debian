@@ -1,0 +1,168 @@
+1.apt-get install asterisk
+2.apt install festival festvox-kallpc16k
+
+wget http://downloads.asterisk.org/pub/telephony/asterisk/asterisk-20-current.tar.gz   #UNTUK DEBIAN 12 JIKA TIDAK BISA INSTALL
+
+3.nano /etc/hosts
+        127.0.0.1       localhost                      # 127.0.0.1 = IP loopback (localhost)
+                                                       # localhost = nama standard untuk mengakses sistem sendiri
+        192.168.1.60    asad                           # 192.168.1.60 = Alamat IP statis server Asterisk
+                                                       # asad        = Nama host yang diberikan ke server
+
+4.nano /etc/asterisk/sip.conf                          # Untuk konfigurasi utama untuk protokol SIP dalam Asterisk.
+
+            [general]                                  # Untuk setting global dan default untuk protokol
+        bindaddr=0.0.0.0                               # Bind ke semua interface network (0.0.0.0 = semua IP)
+        bindport=5060                                  # Port SIP standard (5060 untuk non-encrypted, 5061 untuk TLS)
+        externip=192.168.1.60                          # IP public/external server (untuk NAT traversal)
+        localnet=192.168.1.0/255.255.255.0             # Jaringan lokal yang dianggap trusted (untuk NAT handling)
+        context=default                                # Context default untuk panggilan masuk tanpa auth
+        disallow=all                                   # Block semua codec, lalu allow specific codec saja
+        allow=ulaw                                     # Izinkan codec G.711 ulaw (North America/Japan standard)
+        allow=alaw                                     # Izinkan codec G.711 alaw (Europe/International standard)
+        nat=force_rport,comedia                        # Setting NAT handling untuk SIP signaling
+        qualify=yes                                    # Monitor status devices (auto-unregister jika offline)
+ 
+           [5550]                                       # Nama section (biasanya extension number)
+        type=friend                                     # Bisa sebagai both caller dan callee (user+peer)
+        context=myphone                                 # Context dialplan untuk panggilan masuk
+        secret=12345                                    # Password untuk authentication  
+        host=dynamic                                    # Device akan register secara dynamic (bukan static IP)
+        qualify=yes                                     # Monitor status device (online/offline)
+
+           [5551]                                       # Nama section (biasanya extension number)
+        type=friend                                     # Bisa sebagai both caller dan callee (user+peer)
+        context=myphone                                 # Context dialplan untuk panggilan masuk
+        secret=12345                                    # Password untuk authentication  
+        host=dynamic                                    # Device akan register secara dynamic (bukan static IP)
+        qualify=yes                                     # Monitor status device (online/offline)
+
+           [5552]                                       # Nama section (biasanya extension number)
+        type=friend                                     # Bisa sebagai both caller dan callee (user+peer)
+        context=myphone                                 # Context dialplan untuk panggilan masuk
+        secret=12345                                    # Password untuk authentication  
+        host=dynamic                                    # Device akan register secara dynamic (bukan static IP)
+        qualify=yes                                     # Monitor status device (online/offline)
+
+
+[general]
+bindaddr=0.0.0.0
+bindport=5060
+externip=192.168.1.60
+localnet=192.168.1.0/255.255.255.0
+context=default
+disallow=all
+allow=ulaw
+allow=alaw
+nat=force_rport,comedia
+qualify=yes
+
+[11111]
+type=friend
+context=myphone
+secret=12345
+host=dynamic
+
+[22222]
+type=friend
+context=myphone
+secret=12345
+host=dynamic
+
+[33333]
+type=friend
+context=myphone
+secret=12345
+host=dynamic
+
+[44444]
+type=friend
+context=myphone
+secret=12345
+host=dynamic
+
+
+5.nano /etc/asterisk/extensions.conf                    # File "otak" dari sistem telepon Asterisk
+
+        [others]                                        # Context untuk keperluan lain (kosong/tidak ada extension)
+        [myphone]                                       # Context utama untuk handling panggilan telepon
+
+        exten => 5550,1,Dial(SIP/5550,20)               # Priority 1: Dial ke SIP device 5550
+        same  => n,Hangup()                             # Priority next: Hangup jika tidak dijawab
+
+        exten => 5551,1,Dial(SIP/5551,20)               # Priority 1: Dial ke SIP device 5550
+        same  => n,Hangup()                             # Priority next: Hangup jika tidak dijawab
+
+        exten => 5552,1,Dial(SIP/5552,20)               # Priority 1: Dial ke SIP device 5550
+        same  => n,Hangup()                             # Priority next: Hangup jika tidak dijawab
+
+#Tanpa suara operator
+
+[others]
+[myphone]
+
+exten => 11111,1,Dial(SIP/5550,20)
+same  => n,Hangup()
+
+exten => 22222,1,Dial(SIP/5551,20)
+same  => n,Hangup()
+
+exten => 33333,1,Dial(SIP/5552,20)
+same  => n,Hangup()
+
+exten => 44444,1,Dial(SIP/5552,20)
+same  => n,Hangup()
+
+
+#untuk tambahan suara operator
+
+        [myphone]
+      exten => 1000,1,Answer()
+      same  => n,NoOp(Menu Utama: Pilihan HP, Laptop, atau PC)
+      same  => n,Festival("Tekan nomor satu untuk Client satu, tekan nomor dua untuk Client dua, tekan nomor tiga untuk client tiga, tekan nomor empat untuk client empat")
+      same  => n,WaitExten(5)
+      same  => n,Hangup()
+
+      exten => 1,1,NoOp(Memanggil HP)
+      same  => n,Dial(SIP/11111,30)
+      same  => n,Hangup()
+
+      exten => 2,1,NoOp(Memanggil Laptop)
+      same  => n,Dial(SIP/22222,30)
+      same  => n,Hangup()
+
+      exten => 3,1,NoOp(Memanggil PC)
+      same  => n,Dial(SIP/33333,30)
+      same  => n,Hangup()
+
+      exten => 4,1,NoOp(Memanggil PC)
+      same  => n,Dial(SIP/44444,30)
+      same  => n,Hangup()
+
+      exten => i,1,NoOp(Input tidak valid)
+      same  => n,Festival("Input tidak valid, silakan coba lagi")
+      same  => n,Goto(1000,1)
+
+      exten => t,1,NoOp(Timeout terjadi)
+      same  => n,Festival("Waktu habis, selamat tinggal")
+      same  => n,Hangup()
+
+
+6.systemctl restart asterisk
+
+7.asterisk -rvvv
+        sip reload
+        dialplan reload
+        sip show peers
+        
+
+        Name/username             Host                                    Dyn Forcerport Comedia    ACL Port     Status      Description
+        5550/5550                 192.168.1.2                              D  Auto (No)  No             51208    OK (3 ms)                          # online/tersambung/sudah login
+        5551/5551                 192.168.1.28                             D  Auto (No)  No             42109    OK (19 ms)                         # online/tersambung/sudah login
+        5552/5552                 (Unspecified)                            D  Auto (Yes) No             0        UNKNOWN                            # offline/tidak tersambung/belum login
+        4 sip peers [Monitored: 2 online, 2 offline Unmonitored: 0 online, 0 offline]
+
+        exit
+
+#Untuk menjalankan server
+8.festival --server &
