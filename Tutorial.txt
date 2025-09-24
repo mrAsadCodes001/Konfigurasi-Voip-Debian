@@ -123,6 +123,12 @@ same  => n,Hangup()
       same  => n,WaitExten(5)
       same  => n,Hangup()
 
+      exten => 1001,1,Answer()
+      same  => n,NoOp(Menu Utama: Pilihan HP, Laptop, atau PC)
+      same  => n,Festival("Tekan nomor satu untuk Client satu, tekan nomor dua untuk Client dua, tekan nomor tiga untuk client tiga, tekan nomor empat untuk client empat")
+      same  => n,WaitExten(5)
+      same  => n,Hangup()
+
       exten => 1,1,NoOp(Memanggil HP)
       same  => n,Dial(SIP/11111,30)
       same  => n,Hangup()
@@ -166,3 +172,4 @@ same  => n,Hangup()
 
 #Untuk menjalankan server
 8.festival --server &
+
